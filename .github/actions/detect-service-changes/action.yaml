@@ -1,0 +1,12 @@
+name: 'Detect service changes'
+description: 'determines which services are affected by current changes'
+inputs:
+  changed-files:
+    description: 'list of changed files'
+    required: true
+outputs:
+  services:
+    description: 'array containing all changed services'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'

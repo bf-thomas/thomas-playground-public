@@ -1,0 +1,85 @@
+name: Deploy changedfiles
+
+on:
+  pull_request:
+    types: [opened]
+  issue_comment:
+    types: [created]
+ 
+jobs:
+  deploy-check:
+    runs-on: self-hosted
+    steps:
+      - name: acknowledge deployment request to commenter
+        id: check
+        uses: khan/pull-request-comment-trigger@master
+        with:
+          trigger: "/deploy"
+          reaction: rocket
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    outputs:
+      triggered: ${{ steps.check.outputs.triggered }}
+ 
+  service-names:
+    name: Set Service Names
+    needs: deploy-check
+    if: needs.deploy-check.outputs.triggered == 'true'
+    runs-on: self-hosted
+    outputs:
+      services: ${{ steps.set_service_names.outputs.services }}
+    steps:
+    - name: get pull request ref
+      id: get_pull_request_ref
+      uses: octokit/request-action@v2.x
+      with:
+        route: GET /repos/:repository/pulls/:issue_id
+        repository: ${{ github.repository }}
+        issue_id: ${{ github.event.issue.number }}
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+    - run: echo " ref ${{ fromJson(steps.get_pull_request_ref.outputs.data).head.sha }}"
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ fromJson(steps.get_pull_request_ref.outputs.data).head.ref }}
+#    - uses: lots0logs/gh-action-get-changed-files@2.1.4
+#      id: changed-files
+#      with:
+#        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v19
+      with:
+        sha: ${{ fromJson(steps.get_pull_request_ref.outputs.data).head.sha }}
+
+    - name: List all changed files
+      run: |
+        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+          echo "$file was changed"
+        done
+
+    - name: Detect service changes
+      uses: ./.github/actions/detect-service-changes
+      id: service-changes
+      with:
+        changed-files: ${{ steps.changed-files.outputs.all_changed_files }}
+    - id: set_service_names
+      run: |
+        echo "::set-output name=services::$SERVICES"
+      env:
+        SERVICES: ${{ steps.service-changes.outputs.services }}
+
+  build-deploy:
+      name: Build and Deploy Services
+      needs: service-names
+      runs-on: self-hosted
+      env:
+        SERVICE: ${{ matrix.service }}
+      strategy:
+        matrix:
+          service: ${{ fromJson(needs.service-names.outputs.services) }}
+      steps:
+      - name: Print out service names
+        run: |
+          echo "Buildand deploy service $SERVICE"

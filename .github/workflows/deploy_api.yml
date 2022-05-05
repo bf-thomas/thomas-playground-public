@@ -1,0 +1,67 @@
+name: deploy-api
+# based on https://github.com/google-github-actions/setup-gcloud/tree/master/example-workflows/gke-kustomize
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: 'Environment to deploy'     
+        required: true
+        default: '01.dev' 
+        type: choice
+        options:
+        - 01.dev
+        - 02.dev
+      api_name:
+        description: 'Environment to deploy'     
+        required: true
+        default: '' 
+        type: choice
+        options:
+        - auth
+        - email
+        - eventdb
+
+jobs:
+  get-pr:
+    name: Get pr infos
+    runs-on: self-hosted
+    outputs:
+      output_pr: ${{ steps.PR.outputs.number }}
+    steps:
+    - uses: actions/checkout@v1
+    - uses: 8BitJonny/gh-get-current-pr@2.0.0
+      id: PR
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        # Verbose setting SHA when using Pull_Request event trigger to fix #16
+        sha: ${{ github.event.pull_request.head.sha }}
+        # Only return if PR is still open
+        filterOutClosed: true
+        # Only return if PR is not in draft state
+        filterOutDraft: 1
+    - run: echo "Your PR is ${prNumber} and its JSON is ${prJSON}"
+      if: success() && steps.PR.outputs.number
+      env:
+        prNumber: ${{ steps.PR.outputs.number }}
+        # JSON object with the full PR object
+        prJSON: ${{ steps.PR.outputs.pr }}
+        # Direct access to common PR properties
+        prUrl: ${{ steps.PR.outputs.pr_url }}
+        prTitle: ${{ steps.PR.outputs.pr_title }}
+        prBody: ${{ steps.PR.outputs.pr_body }}
+        prCreatedAt: ${{ steps.PR.outputs.pr_created_at }}
+        prMergedAt: ${{ steps.PR.outputs.pr_merged_at }}
+        prClosedAt: ${{ steps.PR.outputs.pr_closed_at }}
+        prLabel: ${{ steps.PR.outputs.pr_labels }}
+
+
+  debug:
+    name: echo info
+    runs-on: self-hosted
+    needs: "get-pr"
+    environment: ${{ github.event.inputs.deploy_env }}
+    steps:
+    - name: Echo out deploy info
+      run: |- 
+        echo "Deploy PR ${{needs.get-pr.outputs.output_pr}} for api ${{ github.event.inputs.deploy_env }} to env ${{ github.event.inputs.deploy_env }}"
+   

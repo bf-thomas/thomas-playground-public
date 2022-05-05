@@ -1,0 +1,59 @@
+name: Deploy changedfiles
+
+on:
+  pull_request:
+    branches: [ main ]
+ 
+jobs:
+  service-names:
+    name: Set Service Names
+    runs-on: self-hosted
+    outputs:
+      services: ${{ steps.set_service_names.outputs.services }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: lots0logs/gh-action-get-changed-files@2.1.4
+      id: changed-files
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Detect service changes
+      uses: ./.github/actions/detect-service-changes
+      id: service-changes
+      with:
+        changed-files: ${{ steps.changed-files.outputs.all }}
+    - id: set_service_names
+      run: |
+        echo "::set-output name=services::$SERVICES"
+      env:
+        SERVICES: ${{ steps.service-changes.outputs.services }}
+
+  build-deploy-01:
+      name: Build and Deploy
+      needs: service-names
+      runs-on: self-hosted
+      environment: 01.dev
+      env:
+        SERVICE: ${{ matrix.service }}
+      strategy:
+        matrix:
+          service: ${{ fromJson(needs.service-names.outputs.services) }}
+      steps:
+      - name: Print out service names
+        run: |
+          echo "Build and deploy service $SERVICE"
+
+  build-deploy-02:
+      name: Build and Deploy
+      needs: service-names
+      runs-on: self-hosted
+      environment: 02.dev
+      env:
+        SERVICE: ${{ matrix.service }}
+      strategy:
+        matrix:
+          service: ${{ fromJson(needs.service-names.outputs.services) }}
+      steps:
+      - name: Print out service names
+        run: |
+          echo "Build and deploy service $SERVICE"
