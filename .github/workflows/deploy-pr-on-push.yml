@@ -7,7 +7,7 @@ on:
 jobs:
   service-names:
     name: Set Service Names
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.set_service_names.outputs.services }}
     steps:
@@ -31,7 +31,7 @@ jobs:
   build-deploy-01:
       name: Build and Deploy
       needs: service-names
-      runs-on: self-hosted
+      runs-on: ubuntu-latest
       environment: 01.dev
       env:
         SERVICE: ${{ matrix.service }}
@@ -46,7 +46,7 @@ jobs:
   build-deploy-02:
       name: Build and Deploy
       needs: service-names
-      runs-on: self-hosted
+      runs-on: ubuntu-latest
       environment: 02.dev
       env:
         SERVICE: ${{ matrix.service }}
