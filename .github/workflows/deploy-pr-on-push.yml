@@ -6,8 +6,8 @@ on:
  
 jobs:
   service-names:
-    name: Set Service Names
-    runs-on: self-hosted
+    name: Detect changes services
+    runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.set_service_names.outputs.services }}
     steps:
@@ -29,9 +29,9 @@ jobs:
         SERVICES: ${{ steps.service-changes.outputs.services }}
 
   build-deploy-01:
-      name: Build and Deploy
+      name: Deploy to 01.dev
       needs: service-names
-      runs-on: self-hosted
+      runs-on: ubuntu-latest
       environment: 01.dev
       env:
         SERVICE: ${{ matrix.service }}
@@ -44,9 +44,9 @@ jobs:
           echo "Build and deploy service $SERVICE"
 
   build-deploy-02:
-      name: Build and Deploy
+      name: Deploy to 02.dev
       needs: service-names
-      runs-on: self-hosted
+      runs-on: ubuntu-latest
       environment: 02.dev
       env:
         SERVICE: ${{ matrix.service }}
