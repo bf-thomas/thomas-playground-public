@@ -53,6 +53,7 @@ jobs:
     name: echo info
     runs-on: self-hosted
     environment: ${{ github.event.inputs.deploy_env }}
+    continue-on-error: true
     steps:
     - name: Echo out deploy info
       run: |- 
